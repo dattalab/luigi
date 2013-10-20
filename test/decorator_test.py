@@ -42,7 +42,7 @@ class InheritTest(unittest.TestCase):
 
     def test_has_param(self):
         b_params = dict(self.b.get_params()).keys()
-        self.assertIn("param1", b_params)
+        self.assertTrue("param1" in b_params)
 
     def test_default_param(self):
         self.assertEqual(self.b.param1, self.a.param1)
@@ -67,7 +67,7 @@ class InheritTest(unittest.TestCase):
         self.assertEqual(self.e.param2, self.b.param2)
 
     def test_removing_parameter(self):
-        self.assertNotIn("param1", dict(self.d_null.get_params()).keys())
+        self.assertFalse("param1" in dict(self.d_null.get_params()).keys())
 
 class F(luigi.Task):
     param1 = luigi.Parameter("A parameter on a base task, that will be required later.")
