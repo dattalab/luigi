@@ -42,7 +42,6 @@ def main(args=sys.argv):
     """
     try:
         # Set up logging.
-        logging.basicConfig(level=logging.WARN)
         work_dir = args[1]
         assert os.path.exists(work_dir), "First argument to lsf_runner.py must be a directory that exists"
         do_work_on_compute_node(work_dir)

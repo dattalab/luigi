@@ -33,7 +33,7 @@ import random
 import shutil
 import cPickle as pickle
 from task_status import PENDING, FAILED, DONE, RUNNING, UNKNOWN
-logger = logging.getLogger('luigi-interface')
+logger = luigi.task.logger
 
 
 def attach(*packages):
@@ -113,7 +113,9 @@ class JobTask(luigi.Task):
         logging.debug("Tarballing dependencies")
         # Grab luigi and the module containing the code to be run
         packages = [luigi] + [__import__(self.__module__, None, None, 'dummy')]
+        logging.disable(logging.DEBUG)
         luigi.hadoop.create_packages_archive(packages, os.path.join(self.tmp_dir, "packages.tar"))
+        logging.disable(logging.NOTSET)
 
         # Now, pass onto the class's specified init_local() method. 
         self.init_local()
@@ -191,16 +193,11 @@ class JobTask(luigi.Task):
         # Job <123> is submitted ot queue <myqueue>
         # So get the number in those first brackets. 
         # I cannot think of a better workaround that leaves logic on the Task side of things.
+        logger.info("Submission output: %s" % output)
         self.job_id = int(output.split("<")[1].split(">")[0])
         logger.info("Job submitted as job {job_id}".format(job_id=self.job_id))
 
         self._track_job()
-
-        # If we want to save the job temporaries, then do so
-        # We'll move them to be next to the job output
-        if self.save_job_info:
-            dest_dir = self.output().path
-            shutil.move(self.tmp_dir, os.path.split(dest_dir)[0])
 
         # Now delete the temporaries, if they're there.
         self._finish()
@@ -246,15 +243,27 @@ class JobTask(luigi.Task):
 
 
     def _finish(self):
-
         logger.info("Cleaning up temporary bits")
         if self.tmp_dir and os.path.exists(self.tmp_dir):
             logger.info('Removing directory %s' % self.tmp_dir)
             shutil.rmtree(self.tmp_dir)
 
     def __del__(self):
-        pass
-        # self._finish()
+        self.kill_job(self.job_id)
+        # If the job failed, then we won't have had the opportunity to 
+
+        # If we want to save the job temporaries, then do so
+        # We'll move them to be next to the job output
+        if self.save_job_info:
+            this_output = self.output()
+            if isinstance(self.output(), (list, tuple)):
+                dest_dir = self.output()[0].path
+            else:
+                dest_dir = self.output().path
+            shutil.move(self.tmp_dir, os.path.split(dest_dir)[0])
+
+        # Clean up
+        self._finish()
 
 
 class LocalJobTask(JobTask):
