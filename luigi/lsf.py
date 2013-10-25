@@ -249,9 +249,10 @@ class JobTask(luigi.Task):
             shutil.rmtree(self.tmp_dir)
 
     def __del__(self):
-        self.kill_job(self.job_id)
-        # If the job failed, then we won't have had the opportunity to 
-
+        # If we have a job, let's kill the job
+        if hasattr(self, "job_id"):
+            kill_job(self.job_id)
+        
         # If we want to save the job temporaries, then do so
         # We'll move them to be next to the job output
         if self.save_job_info:
