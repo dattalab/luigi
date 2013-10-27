@@ -18,9 +18,13 @@ def send_email(subject, message, sender, recipients, image_png=None):
                  "Message:\n"
                  "%s\n"
                  "-------------" % (recipients, sender, subject, message))
+
+    config = configuration.get_config()
+    should_force_email = config.getboolean("core", "force-email-report", False)
+
     if not recipients or recipients == (None,):
         return
-    if sys.stdout.isatty() or DEBUG:
+    if (sys.stdout.isatty() or DEBUG) and not should_force_email:
         logger.info("Not sending email when running from a tty or in debug mode")
         return
 
@@ -52,7 +56,13 @@ def send_email(subject, message, sender, recipients, image_png=None):
 
     smtp_login = config.get('core', 'smtp_login', None)
     smtp_password = config.get('core', 'smtp_password', None)
+    print smtp_login
+    print smtp_password
+    print "\n"*5
     smtp = smtplib.SMTP(**kwargs) if not smtp_ssl else smtplib.SMTP_SSL(**kwargs)
+    if "gmail.com" in smtp_host:
+        smtp.ehlo()
+        smtp.starttls()
     if smtp_login and smtp_password:
         smtp.login(smtp_login, smtp_password)
 
