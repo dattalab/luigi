@@ -199,6 +199,16 @@ class JobTask(luigi.Task):
 
         self._track_job()
 
+        # If we want to save the job temporaries, then do so
+        # We'll move them to be next to the job output
+        if self.save_job_info:
+            this_output = self.output()
+            if isinstance(self.output(), (list, tuple)):
+                dest_dir = self.output()[0].path
+            else:
+                dest_dir = self.output().path
+            shutil.move(self.tmp_dir, os.path.join(os.path.split(dest_dir)[0], os.path.split(self.tmp_dir)[-1]))
+
         # Now delete the temporaries, if they're there.
         self._finish()
 
@@ -244,28 +254,12 @@ class JobTask(luigi.Task):
 
     def _finish(self):
         logger.info("Cleaning up temporary bits")
-        if hasattr(self, "tmp_dir") and os.path.exists(self.tmp_dir):
+        if self.tmp_dir and os.path.exists(self.tmp_dir):
             logger.info('Removing directory %s' % self.tmp_dir)
             shutil.rmtree(self.tmp_dir)
 
     def __del__(self):
-        # If we have a job, let's kill the job
-        if hasattr(self, "job_id"):
-            kill_job(self.job_id)
-        
-
-        # If we want to save the job temporaries, then do so
-        # We'll move them to be next to the job output
-        if self.save_job_info and hasattr(self, "tmp_dir"):
-            this_output = self.output()
-            if isinstance(self.output(), (list, tuple)):
-                dest_dir = self.output()[0].path
-            else:
-                dest_dir = self.output().path
-            shutil.move(self.tmp_dir, os.path.split(dest_dir)[0])
-
-        # Clean up
-        self._finish()
+        pass
 
 
 class LocalJobTask(JobTask):
